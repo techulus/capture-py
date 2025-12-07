@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Capture Team"}
+    {name = "Capture Team", email = "support@capture.page"}
 ]
 keywords = ["capture", "screenshot", "pdf", "web scraping", "content extraction"]
 classifiers = [
