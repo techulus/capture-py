@@ -42,7 +42,7 @@ dev = [
 [project.urls]
 Homepage = "https://capture.page"
 Documentation = "https://docs.capture.page"
-Repository = "https://github.com/capture/capture-py"
+Repository = "https://github.com/techulus/capture-py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/capture"]

@@ -160,44 +160,12 @@ asyncio.run(main())
 
 - `useEdge` (bool): Use edge.capture.page instead of cdn.capture.page for faster response times
 
-### Request Options
-
-Common options that can be passed to any build or fetch method:
-
-- `full` (bool): Capture full page screenshot
-- `delay` (int): Delay before capture in seconds
-- `width` (int): Viewport width in pixels
-- `height` (int): Viewport height in pixels
-- `quality` (int): Image quality (1-100)
-- `t` (int): Timestamp for cache busting
-
 ## API Endpoints
 
 The SDK supports two base URLs:
 
 - **CDN**: `https://cdn.capture.page` (default)
 - **Edge**: `https://edge.capture.page` (when `useEdge: True`)
-
-## Error Handling
-
-The SDK raises exceptions for invalid inputs:
-
-```python
-from capture import Capture
-
-client = Capture("", "")
-
-try:
-    url = client.build_image_url("https://example.com")
-except ValueError as e:
-    print(f"Error: {e}")
-```
-
-Common errors:
-
-- `ValueError`: Missing key/secret or invalid URL
-- `TypeError`: Invalid parameter types
-- `aiohttp.ClientError`: HTTP request failures
 
 ## Type Hints
 
@@ -216,35 +184,6 @@ client = Capture("key", "secret")
 url: str = client.build_image_url("https://example.com", options)
 ```
 
-## Development
-
-### Setup
-
-```bash
-git clone https://github.com/capture/capture-py.git
-cd capture-py
-uv pip install -e ".[dev]"
-```
-
-### Run Tests
-
-```bash
-uv run pytest
-```
-
-### Code Formatting
-
-```bash
-black src/ tests/
-ruff check src/ tests/
-```
-
-### Type Checking
-
-```bash
-mypy src/
-```
-
 ## License
 
 MIT
@@ -254,7 +193,7 @@ MIT
 - [Website](https://capture.page)
 - [Documentation](https://docs.capture.page)
 - [API Reference](https://docs.capture.page/api)
-- [GitHub](https://github.com/capture/capture-py)
+- [GitHub](https://github.com/techulus/capture-py)
 
 ## Support
 
