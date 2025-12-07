@@ -192,7 +192,6 @@ MIT
 
 - [Website](https://capture.page)
 - [Documentation](https://docs.capture.page)
-- [API Reference](https://docs.capture.page/api)
 - [GitHub](https://github.com/techulus/capture-py)
 
 ## Support
