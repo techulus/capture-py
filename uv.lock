@@ -445,7 +445,7 @@ wheels = [
 ]
 
 [[package]]
-name = "capture-py"
+name = "capture-sdk"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

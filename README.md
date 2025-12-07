@@ -5,7 +5,7 @@ Official Python SDK for [Capture](https://capture.page) - Screenshot and content
 ## Installation
 
 ```bash
-pip install capture-py
+pip install capture-sdk
 ```
 
 ## Quick Start
