@@ -1,4 +1,4 @@
-from .client import Capture, RequestOptions, RequestType
+from .client import Capture, CaptureSessionsError, RequestOptions, RequestType
 
 __version__ = "1.0.0"
-__all__ = ["Capture", "RequestOptions", "RequestType"]
+__all__ = ["Capture", "CaptureSessionsError", "RequestOptions", "RequestType"]

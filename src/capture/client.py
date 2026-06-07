@@ -1,19 +1,36 @@
+import base64
 import hashlib
 from typing import Any, Dict, Literal, Optional, Union
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import aiohttp
 from yarl import URL
 
 RequestType = Literal["image", "pdf", "content", "metadata", "animated"]
 RequestOptions = Dict[str, Union[str, int, bool]]
+SessionOptions = Dict[str, Union[str, int, bool]]
+ActionPayload = Dict[str, Any]
+SessionResponse = Dict[str, Any]
+
+
+class CaptureSessionsError(Exception):
+    def __init__(self, status: int, body: Any) -> None:
+        message = (
+            body.get("error")
+            if isinstance(body, dict) and isinstance(body.get("error"), str)
+            else f"Capture Sessions API request failed with status {status}"
+        )
+        super().__init__(message)
+        self.status = status
+        self.body = body
+
 
 class Capture:
     API_URL = "https://cdn.capture.page"
     EDGE_URL = "https://edge.capture.page"
 
     def __init__(
-        self, key: str, secret: str, options: Optional[Dict[str, bool]] = None
+        self, key: str, secret: str, options: Optional[Dict[str, Any]] = None
     ) -> None:
         self.key = key
         self.secret = secret
@@ -36,7 +53,10 @@ class Capture:
         return urlencode(filtered_params, safe="")
 
     def _build_url(
-        self, url: str, request_type: RequestType, options: Optional[RequestOptions] = None
+        self,
+        url: str,
+        request_type: RequestType,
+        options: Optional[RequestOptions] = None,
     ) -> str:
         if not self.key or not self.secret:
             raise ValueError("Key and Secret is required")
@@ -45,7 +65,9 @@ class Capture:
             raise ValueError("url is required")
 
         if not isinstance(url, str):
-            raise TypeError("url should be of type string (something like www.google.com)")
+            raise TypeError(
+                "url should be of type string (something like www.google.com)"
+            )
 
         params = options.copy() if options else {}
         params["url"] = url
@@ -57,29 +79,78 @@ class Capture:
 
         return f"{base_url}/{self.key}/{token}/{request_type}?{query_string}"
 
-    def build_image_url(self, url: str, options: Optional[RequestOptions] = None) -> str:
+    def _sessions_bearer_token(self) -> str:
+        if not self.key or not self.secret:
+            raise ValueError("Key and Secret is required")
+
+        token = f"{self.key}:{self.secret}".encode()
+        return base64.b64encode(token).decode()
+
+    def _session_url(self, path: str = "") -> str:
+        return f"{self.EDGE_URL.rstrip('/')}/v1/sessions{path}"
+
+    async def _sessions_request(
+        self,
+        path: str,
+        method: Literal["GET", "POST", "DELETE"],
+        body: Optional[Dict[str, Any]] = None,
+    ) -> SessionResponse:
+        headers = {"Authorization": f"Bearer {self._sessions_bearer_token()}"}
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                method,
+                self._session_url(path),
+                headers=headers,
+                json=body,
+            ) as response:
+                try:
+                    response_body = await response.json()
+                except aiohttp.ContentTypeError:
+                    response_body = {}
+
+                if response.status < 200 or response.status >= 300:
+                    raise CaptureSessionsError(response.status, response_body)
+
+                return response_body
+
+    def build_image_url(
+        self, url: str, options: Optional[RequestOptions] = None
+    ) -> str:
         return self._build_url(url, "image", options)
 
     def build_pdf_url(self, url: str, options: Optional[RequestOptions] = None) -> str:
         return self._build_url(url, "pdf", options)
 
-    def build_content_url(self, url: str, options: Optional[RequestOptions] = None) -> str:
+    def build_content_url(
+        self, url: str, options: Optional[RequestOptions] = None
+    ) -> str:
         return self._build_url(url, "content", options)
 
-    def build_metadata_url(self, url: str, options: Optional[RequestOptions] = None) -> str:
+    def build_metadata_url(
+        self, url: str, options: Optional[RequestOptions] = None
+    ) -> str:
         return self._build_url(url, "metadata", options)
 
-    def build_animated_url(self, url: str, options: Optional[RequestOptions] = None) -> str:
+    def build_animated_url(
+        self, url: str, options: Optional[RequestOptions] = None
+    ) -> str:
         return self._build_url(url, "animated", options)
 
-    async def fetch_image(self, url: str, options: Optional[RequestOptions] = None) -> bytes:
+    async def fetch_image(
+        self, url: str, options: Optional[RequestOptions] = None
+    ) -> bytes:
         fetch_url = self.build_image_url(url, options)
         async with aiohttp.ClientSession() as session:
             async with session.get(URL(fetch_url, encoded=True)) as response:
                 response.raise_for_status()
                 return await response.read()
 
-    async def fetch_pdf(self, url: str, options: Optional[RequestOptions] = None) -> bytes:
+    async def fetch_pdf(
+        self, url: str, options: Optional[RequestOptions] = None
+    ) -> bytes:
         fetch_url = self.build_pdf_url(url, options)
         async with aiohttp.ClientSession() as session:
             async with session.get(URL(fetch_url, encoded=True)) as response:
@@ -104,9 +175,34 @@ class Capture:
                 response.raise_for_status()
                 return await response.json()
 
-    async def fetch_animated(self, url: str, options: Optional[RequestOptions] = None) -> bytes:
+    async def fetch_animated(
+        self, url: str, options: Optional[RequestOptions] = None
+    ) -> bytes:
         fetch_url = self.build_animated_url(url, options)
         async with aiohttp.ClientSession() as session:
             async with session.get(URL(fetch_url, encoded=True)) as response:
                 response.raise_for_status()
                 return await response.read()
+
+    async def create_session(
+        self, options: Optional[SessionOptions] = None
+    ) -> SessionResponse:
+        return await self._sessions_request("", "POST", dict(options or {}))
+
+    async def get_session(self, session_id: str) -> SessionResponse:
+        return await self._sessions_request(f"/{quote(session_id, safe='')}", "GET")
+
+    async def close_session(self, session_id: str) -> SessionResponse:
+        return await self._sessions_request(f"/{quote(session_id, safe='')}", "DELETE")
+
+    async def execute_action(
+        self,
+        session_id: str,
+        action_type: str,
+        payload: Optional[ActionPayload] = None,
+    ) -> SessionResponse:
+        return await self._sessions_request(
+            f"/{quote(session_id, safe='')}/actions",
+            "POST",
+            {"type": action_type, "payload": dict(payload or {})},
+        )
