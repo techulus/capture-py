@@ -158,16 +158,16 @@ asyncio.run(main())
 
 ```python
 async def main():
-    created = await client.create_session({"maxTtlSeconds": 300})
+    created = await client.sessions.create({"maxTtlSeconds": 300})
     session_id = created["session"]["id"]
 
-    await client.execute_action(session_id, "goto", {"url": "https://example.com"})
+    await client.sessions.action(session_id, "goto", {"url": "https://example.com"})
 
-    screenshot = await client.execute_action(session_id, "screenshot", {
+    screenshot = await client.sessions.action(session_id, "screenshot", {
         "fullPage": True
     })
 
-    await client.close_session(session_id)
+    await client.sessions.close(session_id)
 
 asyncio.run(main())
 ```

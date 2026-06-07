@@ -63,13 +63,6 @@ async def test_fetch_metadata_successfully(client):
 
 @skip_if_no_credentials
 @pytest.mark.asyncio
-async def test_fetch_animated_successfully(client):
-    animated_data = await client.fetch_animated(TEST_URL)
-    assert isinstance(animated_data, bytes)
-    assert len(animated_data) > 0
-
-@skip_if_no_credentials
-@pytest.mark.asyncio
 async def test_fetch_image_with_options(client):
     image_data = await client.fetch_image(TEST_URL, {"full": True, "delay": 2})
     assert isinstance(image_data, bytes)
@@ -107,15 +100,15 @@ async def test_live_session_screenshot_example_dot_com():
     session_id = None
 
     try:
-        created = await client.create_session({"maxTtlSeconds": 300})
+        created = await client.sessions.create({"maxTtlSeconds": 300})
         session_id = created["session"]["id"]
 
-        await client.execute_action(
+        await client.sessions.action(
             session_id,
             "goto",
             {"url": "https://example.com"},
         )
-        screenshot = await client.execute_action(
+        screenshot = await client.sessions.action(
             session_id,
             "screenshot",
             {"fullPage": True},
@@ -133,4 +126,4 @@ async def test_live_session_screenshot_example_dot_com():
         assert len(body_base64) > 0
     finally:
         if session_id:
-            await client.close_session(session_id)
+            await client.sessions.close(session_id)

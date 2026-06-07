@@ -185,7 +185,7 @@ async def test_fetch_animated():
 
 
 @pytest.mark.asyncio
-async def test_create_session_uses_bearer_auth_and_json_body(monkeypatch):
+async def test_sessions_create_uses_bearer_auth_and_json_body(monkeypatch):
     requests = []
 
     async def handler(request):
@@ -206,7 +206,7 @@ async def test_create_session_uses_bearer_auth_and_json_body(monkeypatch):
     try:
         monkeypatch.setattr(Capture, "EDGE_URL", base_url)
         client = Capture("user_123", "secret")
-        response = await client.create_session({"maxTtlSeconds": 300, "proxy": True})
+        response = await client.sessions.create({"maxTtlSeconds": 300, "proxy": True})
 
         assert response["session"]["id"] == "sess_123"
         assert requests == [
@@ -222,7 +222,7 @@ async def test_create_session_uses_bearer_auth_and_json_body(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_close_and_execute_action_requests(monkeypatch):
+async def test_sessions_get_close_and_action_requests(monkeypatch):
     requests = []
 
     async def handler(request):
@@ -237,9 +237,11 @@ async def test_get_close_and_execute_action_requests(monkeypatch):
         monkeypatch.setattr(Capture, "EDGE_URL", base_url)
         client = Capture("user_123", "secret")
 
-        await client.get_session("sess_123")
-        await client.close_session("sess_123")
-        await client.execute_action("sess_123", "goto", {"url": "https://example.com"})
+        await client.sessions.get("sess_123")
+        await client.sessions.close("sess_123")
+        await client.sessions.action(
+            "sess_123", "goto", {"url": "https://example.com"}
+        )
 
         assert requests == [
             ("GET", "/v1/sessions/sess_123", "Bearer dXNlcl8xMjM6c2VjcmV0", None),
@@ -269,7 +271,7 @@ async def test_sessions_error_contains_status_and_body(monkeypatch):
         client = Capture("user_123", "secret")
 
         with pytest.raises(CaptureSessionsError) as exc:
-            await client.get_session("missing")
+            await client.sessions.get("missing")
 
         assert exc.value.status == 404
         assert exc.value.body == {"success": False, "error": "Session not found"}

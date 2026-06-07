@@ -25,6 +25,38 @@ class CaptureSessionsError(Exception):
         self.body = body
 
 
+class CaptureSessions:
+    def __init__(self, client: "Capture") -> None:
+        self._client = client
+
+    async def create(
+        self, options: Optional[SessionOptions] = None
+    ) -> SessionResponse:
+        return await self._client._sessions_request("", "POST", dict(options or {}))
+
+    async def get(self, session_id: str) -> SessionResponse:
+        return await self._client._sessions_request(
+            f"/{quote(session_id, safe='')}", "GET"
+        )
+
+    async def close(self, session_id: str) -> SessionResponse:
+        return await self._client._sessions_request(
+            f"/{quote(session_id, safe='')}", "DELETE"
+        )
+
+    async def action(
+        self,
+        session_id: str,
+        action_type: str,
+        payload: Optional[ActionPayload] = None,
+    ) -> SessionResponse:
+        return await self._client._sessions_request(
+            f"/{quote(session_id, safe='')}/actions",
+            "POST",
+            {"type": action_type, "payload": dict(payload or {})},
+        )
+
+
 class Capture:
     API_URL = "https://cdn.capture.page"
     EDGE_URL = "https://edge.capture.page"
@@ -35,6 +67,7 @@ class Capture:
         self.key = key
         self.secret = secret
         self.options = options or {}
+        self.sessions = CaptureSessions(self)
 
     def _generate_token(self, secret: str, url: str) -> str:
         token_string = f"{secret}{url}"
@@ -183,26 +216,3 @@ class Capture:
             async with session.get(URL(fetch_url, encoded=True)) as response:
                 response.raise_for_status()
                 return await response.read()
-
-    async def create_session(
-        self, options: Optional[SessionOptions] = None
-    ) -> SessionResponse:
-        return await self._sessions_request("", "POST", dict(options or {}))
-
-    async def get_session(self, session_id: str) -> SessionResponse:
-        return await self._sessions_request(f"/{quote(session_id, safe='')}", "GET")
-
-    async def close_session(self, session_id: str) -> SessionResponse:
-        return await self._sessions_request(f"/{quote(session_id, safe='')}", "DELETE")
-
-    async def execute_action(
-        self,
-        session_id: str,
-        action_type: str,
-        payload: Optional[ActionPayload] = None,
-    ) -> SessionResponse:
-        return await self._sessions_request(
-            f"/{quote(session_id, safe='')}/actions",
-            "POST",
-            {"type": action_type, "payload": dict(payload or {})},
-        )
